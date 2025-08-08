@@ -23,12 +23,15 @@ for h2 in find_titles:
     
     # find all li in ul
     contents = ul.find_all('li')
-    lines = []
-    for li in contents:
-        pickup_lines = li.text
-        lines.append(pickup_lines)
+    lines = [li.text.strip() for li in ul.find_all('li') if li.text.strip()]
+    if lines:
+        # pickup_lines_data[category] = lines
+    # lines = []
+    # for li in contents:
+    #     pickup_lines = li.text
+    #     lines.append(pickup_lines.strip())
     
-    info[title] = lines
+        info[title] = lines
 
 with open('pickup_lines.json', 'w', encoding='utf-8') as file:
-    json.dump(info, file, indent=2)
+    json.dump(info, file, indent=2, ensure_ascii=True)
