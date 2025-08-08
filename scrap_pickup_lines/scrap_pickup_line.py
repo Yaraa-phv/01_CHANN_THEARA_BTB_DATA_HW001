@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import requests
 import json
+import re
 
 url = 'https://www.womansday.com/relationships/dating-marriage/a41055149/best-pickup-lines/'
 page = requests.get(url).text
@@ -8,29 +9,34 @@ soup = BeautifulSoup(page, 'html.parser')
 
 info = {}
 
-# Find all title with h2 
 find_titles = soup.find_all('h2', title=True)
 
 for h2 in find_titles:
     title = h2.text  
-    # To find the first ul that next to h2
     ul = h2.find_next('ul')  
     
-    # If not found, just contiue to another h2
-    # if not ul:
-    #     print(f"There is a none of ul in h2 : {h2}")
-    #     continue
+    if not ul:
+        continue
     
-    # find all li in ul
     contents = ul.find_all('li')
-    lines = [li.text.strip() for li in ul.find_all('li') if li.text.strip()]
-    if lines:
-        # pickup_lines_data[category] = lines
-    # lines = []
-    # for li in contents:
-    #     pickup_lines = li.text
-    #     lines.append(pickup_lines.strip())
-    
+    lines = []
+    for li in contents:
+        text = li.text.strip()
+
+        # handle some of the unicode char ' 
+        text = text.replace('\u2019', "'").replace('\u201c', '"').replace('\u201d', '"').replace('\u2014', "'").replace('\u2018', "'")
+
+        # remove unrelated content 
+        if re.search(r'(RELATED:|ADVERTISEMENT)', text, re.IGNORECASE):
+            continue
+
+        # make sure it ends with a period
+        if text and not text.endswith('.'):
+            text += '.'
+
+        lines.append(text)
+
+    if lines:    
         info[title] = lines
 
 with open('pickup_lines.json', 'w', encoding='utf-8') as file:
