@@ -8,36 +8,31 @@ class ScrapProductsSpider(scrapy.Spider):
     start_urls = ["https://www.goldonecomputer.com/"]
 
     def parse(self, response):
-        # Scrap all links in categories
+        
+        # Get category links
         links = response.xpath('//*[@id="res-menu"]/ul/li/a')
-
-        print('Links : ',links)
+        # print(f'Found {len(links)} of total links')
 
         for link in links:
             category = link.xpath('string(.)').get(default='No Category').strip()
             url = link.xpath('@href').get()
 
-            print('all links : ', category , url)
-            # Validate the unwanted and none response
-            unwanted_titles = ['home', 'contact', 'about']
-
-            if not category or category.lower() in unwanted_titles or not url:
-                print("Skipping none title and url...")
+            # Skip unwanted categories
+            unwanted = ['home', 'contact', 'about']
+            
+            if not category or not url or category.lower() in unwanted:
+                print(f"Skipping none category or url : {category}")
                 continue
 
-            # Response for categories.json 
-            # yield {
-            #         'category' : category,
-            #         'url' : url
-            #     }
-
+            # print(f"=====> Processing category: {category}")
+            
             yield scrapy.Request(
-                url = url,
-                callback = self.parse_categories,
-                meta = {'category' : category.strip()}
+                url=url,
+                callback=self.parse_category_page,
+                meta={'category': category}
             )
 
-    def parse_categories(self, response):
+    def parse_category_page(self, response):
         category = response.meta['category']
         
         product_links = []
@@ -58,19 +53,12 @@ class ScrapProductsSpider(scrapy.Spider):
         if next_page:
             yield response.follow(
                 next_page,
-                callback=self.parse_categories,
+                callback=self.parse_category_page,
                 meta={'category': category}
             )
 
-        # Respose links products in each category
-        # yield {
-        #         category : products
-        #     } 
-
-    
     def parse_product_detail(self, response):
         category = response.meta['category']
-
         title = response.xpath('//div[@id="content"]//h3/text()').get(default='No Title').strip()
         brand = response.xpath('//ul[@class="list-unstyled"]/li[span[text()="Brand:"]]/a/text()').get(default='No Brand').strip()
         code = response.xpath('//ul[@class="list-unstyled"]/li[span[text()="Product Code:"]]/text()').get(default='No Code').replace('Product Code:', '').strip()
@@ -80,14 +68,18 @@ class ScrapProductsSpider(scrapy.Spider):
             image_link = response.xpath('//*[@id="content"]/div[1]/div[1]/div/div/div//img/@src').get()
         review = response.xpath('//a[contains(@class, "review-count")]/text()').get(default='No Review').strip()
         
-        yield ScrapComProductsItem(
-            category = category,
-            product_data = {
-                'title' : title,
-                'brand' : brand,
-                'code' : code,
-                'price' : price,
-                'image_link' : image_link,
-                'review' : review
+        # Create the item
+        item = ScrapComProductsItem(
+            category=category,
+            product_data={
+                'category' : category,
+                'title': title,
+                'brand': brand,
+                'code': code,
+                'price': price,
+                'image_link': image_link,
+                'review': review,
             }
         )
+        
+        yield item

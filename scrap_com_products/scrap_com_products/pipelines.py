@@ -26,5 +26,5 @@ class ScrapComProductsPipeline:
 
     def close_spider(self, spider):
         spider.name = 'scrap_products'
-        with open('all_product.json', 'w', encoding = 'utf-8') as file:
+        with open('all_product_detail.json', 'w', encoding = 'utf-8') as file:
             json.dump(self.all_product_data, file, indent=2, ensure_ascii=False)
